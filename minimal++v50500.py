@@ -41,6 +41,8 @@ declareVariablesList = []
 
 nesting=1
 
+scopeList=[""]
+
 afterScopeList=[]
 
 scopeCounter=0
@@ -218,7 +220,7 @@ def syntax():
 
 
 def program():
-    global mainID, token, internalFunction, nesting, afterScopeList, scopeCounter
+    global mainID, token, internalFunction, nesting, afterScopeList, scopeCounter, scopeList
     print("token at line 215 is", token)
     token=lex()
     print("token at line 217 is", token)
@@ -310,7 +312,7 @@ def varlist():
         declareVariable = token
         tempScope=scopeList[scopeCounter]
         totalTempScope=tempScope.getTotalOffset()
-        tempEntity=Entity(token, "var", (total+4))
+        tempEntity=Entity(token, "var", (totalTempScope+4))
         if (internalFunction == False):
             declareVariablesList.append([mainID, declareVariable])
         else:
@@ -360,19 +362,19 @@ def subprogram():
         tempScope=Scope(nesting)
         tempEntity=Entity(functionID, "function", 8)
         tempScope.addEntity(tempEntity)
-        scopeList.insert(0, scope)
+        scopeList.insert(0, tempScope)
 
         functionIdList.append(functionID)
         funcbody(functionID)
         if (token == "}"):
-        	afterScopeList=scopeList[scopeCounter+1]
-        	tempScope=scopeList[scopeCounter]
-        	temp=tempScope.getEntityList()
-        	tempEntity=temp[0]
-        	tempTemp[-1]
-        	tempEntity.setOffset(afterScopeList.getTotalOffset())
+            afterScopeList=scopeList[scopeCounter+1]
+            tempScope=scopeList[scopeCounter]
+            temp=tempScope.getEntityList()
+            tempEntity=temp[0]
+            tempTemp[-1]
+            tempEntity.setOffset(afterScopeList.getTotalOffset())
             tempEntity.setFrameLength(tempTemp.getOffset())
-           	afterScopeList.addEntity(tempEntity)
+            afterScopeList.addEntity(tempEntity)
             genquad("end_block", functionID, "_", "_")
             nesting-=1
             afterScopeList.append(scopeList.pop(0))
@@ -396,14 +398,14 @@ def subprogram():
         procedureIdList.append(procedureID)
         funcbody(procedureID)
         if (token == "}"):
-        	afterScopeList=scopeList[scopeCounter+1]
-        	tempScope=scopeList[scopeCounter]
-        	temp=tempScope.getEntityList()
-        	tempEntity=temp[0]
-        	tempTemp[-1]
-        	tempEntity.setOffset(afterScopeList.getTotalOffset())
+            afterScopeList=scopeList[scopeCounter+1]
+            tempScope=scopeList[scopeCounter]
+            temp=tempScope.getEntityList()
+            tempEntity=temp[0]
+            tempTemp[-1]
+            tempEntity.setOffset(afterScopeList.getTotalOffset())
             tempEntity.setFrameLength(tempTemp.getOffset())
-           	afterScopeList.addEntity(tempEntity)
+            afterScopeList.addEntity(tempEntity)
             genquad("end_block", procedureID, "_", "_")
             nesting-=1
             afterScopeList.append(scopeList.pop(0))
@@ -658,8 +660,8 @@ def assignmentStat():
     tempVarID = token
     tempScope=scopeSearch(tempVarID)
     if(tempScope=="nothing"):
-    	print("Variable:", tempVarID, "not declared at line=", line)
-    	sys.exit()
+        print("Variable:", tempVarID, "not declared at line=", line)
+        sys.exit()
     if (tempVarID not in reservedWords):
         #token = lex()
         print("token at line 529 is", token)
