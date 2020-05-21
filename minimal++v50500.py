@@ -32,10 +32,10 @@ internalFunction = False
 functionIdList = []  # Function names
 variablesListOfFunction = []  # List[[fuctionId,in or inout, varName],..] with function variables
 
-currentFunctionVariablesPlace = -1
+procedureIdList = []  #Procedure names
+variablesListOfProcedure=[] # List[[procedureId,in or inout, varName],..] with procedure variables
 
-procedureIdList = []  # Procedure names
-variablesListOfProcedure = []  # Lisi[List[List]] with procedure variables
+currentFunctionVariablesPlace = -1
 
 declareVariablesList = []
 
@@ -485,14 +485,26 @@ def formalparlist():
 
 
 def formalparitem():
-    global token, variablesListOfFunction, functionIdList
+    global token, variablesListOfFunction, functionIdList, variablesListOfProcedure, procedureIdList, scopeCounter, scopeList
     print("token at line 418 is", token)
     if (token == "in"):
         token = lex()
+        tempScope=scopeList[scopeCounter]
         print("token at line 421 is", token)
         if (token not in reservedWords):
             parInName = token
             variablesListOfFunction.append([functionIdList[-1], "in", parInName])
+            
+            tempEntity=Entity(parInName, "var", tempScope.getTotalOffset()+4)
+            tempEntity.setParMode("in")
+            tempScope.addEntity(tempEntity)
+            tempArg=Argument("in", "int")
+            tempTemp=tempScope.getEntityList()
+            tempEntity=tempTemp[0]
+            tempEntity.setArgument(tempArg)
+            tempTemp[0]=tempEntity
+            tempScope.setEntityList(tempTemp)
+            scopeList[scopeCounter]=tempScope
             return 1
         else:
             print("Incompatible varable name at line=", line)
@@ -502,7 +514,18 @@ def formalparitem():
         token = lex()
         if (token not in reservedWords):
             parInOutName = token
-            variablesListOfFunction.append([functionIdList[-1], "inout", parInOutName])
+            variablesListOfProcedure.append([functionIdList[-1], "inout", parInOutName])
+            
+            tempEntity=Entity(parInOutName, "var", tempScope.getTotalOffset()+4)
+            tempEntity.setParMode("inout")
+            tempScope.addEntity(tempEntity)
+            tempArg=Argument("inout", "int")
+            tempTemp=tempScope.getEntityList()
+            tempEntity=tempTemp[0]
+            tempEntity.setArgument(tempArg)
+            tempTemp[0]=tempEntity
+            tempScope.setEntityList(tempTemp)
+            scopeList[scopeCounter]=tempScope
             return 1
         else:
             print("Incompatible varable name at line=", line)
@@ -633,6 +656,10 @@ def assignmentStat():
     print("token at line 525 is", token)
     token=lex()
     tempVarID = token
+    tempScope=scopeSearch(tempVarID)
+    if(tempScope=="nothing"):
+    	print("Variable:", tempVarID, "not declared at line=", line)
+    	sys.exit()
     if (tempVarID not in reservedWords):
         #token = lex()
         print("token at line 529 is", token)
@@ -1024,6 +1051,8 @@ def actualparitem(callerID):
         print("token at line 874 is", token)
         token = lex()
         print("token at line 876 is", token)
+        tempArg=Argument("in", "int")
+
         expressionTemp = expression()
         print("token at line 878 is", token)
         genquad("par", expressionTemp, "CV", "_")
@@ -1031,14 +1060,10 @@ def actualparitem(callerID):
         print("token at line 881 is", token)
         token = lex()
         print("token at line 883 is", token)
-        if (token not in reservedWords):
-            genquad("par", token, "REF", "_")
-            print("token at line 886 is", token)
-            token = lex()
-            print("token at line 888 is", token)
-        else:
-            print("No ID found after inout expression at line=", line)
-            sys.exit()
+        genquad("par", token, "REF", "_")
+        print("token at line 886 is", token)
+        token = lex()
+        print("token at line 888 is", token)
     else:
         print("No valid expression at line=", line)
         sys.exit()
