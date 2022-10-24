@@ -1,0 +1,48 @@
+program  test_4
+{
+	/* test_4 */
+	declare a, c;
+	procedure one(in arg, inout numbers)
+	{
+	    declare result, i;
+	    {
+	    	i:=0;
+	    	while(i<10)
+	    	{
+	      		result:=numbers+i;
+	      		i:=i+1
+			}
+        	print (result)
+        }
+        input (result); 
+        if(arg>numbers and result>0) then
+        {
+        	arg:=result+numbers
+        }else
+        {
+        	arg:=arg+result
+        }
+        print(arg)
+    }
+    function two(in temp_1, inout temp_2)
+	{
+	    declare something;
+	    {
+	    	i:=temp_1;
+	    	forcase when(i<=7):
+	    	{
+	      		temp_2:=c+i
+			}default:
+			{
+				i:=temp_2
+			}
+        	print (i);
+        	return (i)
+        }
+    }
+	{
+	input (c); 
+	c:=2;
+	print (a)
+	}
+}

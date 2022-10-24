@@ -1,0 +1,23 @@
+program  test_2
+{
+	declare a, c;
+	procedure one(inout numbers)
+	{
+	    declare result, i;
+	    {
+	    	i:=0;
+	    	while(i<10)
+	    	{
+	      		result:=numbers+i;
+	      		i:=i+1
+			}
+        	print (result)
+        }
+    }
+	{
+	input (c); 
+	/* test_2 */
+	c:=2;
+	print (a)
+	}
+}

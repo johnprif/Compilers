@@ -1,0 +1,32 @@
+program  test_3
+{
+	declare a, c;
+	procedure one(in arg, inout numbers)
+	{
+	    declare result, i;
+	    {
+	    	i:=0;
+	    	while(i<10)
+	    	{
+	      		result:=numbers+i;
+	      		i:=i+1
+			}
+        	print (result)
+        }
+        input (result); 
+        if(arg>numbers and result>0) then
+        {
+        	arg:=result+numbers
+        }else
+        {
+        	arg:=arg+result
+        	/* test_3 */
+        }
+        print(arg)
+    }
+	{
+	input (c); 
+	c:=2;
+	print (a)
+	}
+}
