@@ -1,0 +1,19 @@
+program testino
+{
+	declare a, c;
+	function one(in numbers)
+	{
+	    declare result, i;
+	    i:=0;
+	    while(i<10)
+	    {
+	      result:=numbers+i;
+	      i:=i+1
+		}
+        return (result)
+    }
+	inpput(c);
+	inpput(numbers);
+	a:=one(numbers); 
+	print(a)
+}
