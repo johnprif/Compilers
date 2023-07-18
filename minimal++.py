@@ -1,5 +1,5 @@
 # Prifth Ioannhs/AM 3321/username cse63321
-#Theodwrou Gewrgios Euaggelos/AM 3231/username cse63231
+# Theodwrou Gewrgios Euaggelos/AM 3231/username cse63231
 
 import sys, pdb
 
@@ -25,31 +25,33 @@ currentQuadPlace = -1
 quadsList = []
 listOfVarTemps = []  # list with T_
 tempCounter = -1
+quadCounter = 0
 
 mainID = ""
 internalFunction = False
 
 functionIdList = []  # Function names
 variablesListOfFunction = []  # List[[fuctionId,in or inout, varName],..] with function variables
+functionParList = []
 
-procedureIdList = []  #Procedure names
-variablesListOfProcedure=[] # List[[procedureId,in or inout, varName],..] with procedure variables
+procedureIdList = []  # Procedure names
+variablesListOfProcedure = []  # List[[procedureId,in or inout, varName],..] with procedure variables
 
 currentFunctionVariablesPlace = -1
 
 declareVariablesList = []
 
-nesting=1
+nesting = 1
 
-scopeList=[""]
+scopeList = [""]
 
-afterScopeList=[]
+afterScopeList = []
 
-scopeCounter=0
+scopeCounter = 0
 
 # Open file
-#fileName = input("Enter the file name: ")
-fileName=sys.argv[1]
+# fileName = input("Enter the file name: ")
+fileName = sys.argv[1]
 
 # Check if it is of the required type
 if ("min" in fileName):
@@ -61,26 +63,24 @@ else:
 
 # Lektikos Analyths
 def lex():
-    global position
-    global line
+    global position, line, token
     tempString = ""
     char = ''
 
-    #pdb.set_trace()
+    # pdb.set_trace()
 
     while (True):
         position += 1
         fileReader.seek(position)
         char = fileReader.read(1)  # Reading char by char
-        tempString += char 
-
+        tempString += char
         if (char == "\n"):
             line += 1
-            tempString=tempString[:-1]
+            tempString = tempString[:-1]
             continue
         elif (char.isspace()):  # Ignore spaces
-            tempString=tempString[:-1]
-            continue 
+            tempString = tempString[:-1]
+            continue
         elif (tempString in relationalOpers):  # Checks if it is a relational operant
             if (tempString == '<' or tempString == '>'):
                 position += 1
@@ -116,9 +116,13 @@ def lex():
             fileReader.seek(position)
             char = fileReader.read(1)
             tempString += char
-            if (tempString in comments): #// /*
-                if(checkComments(tempString)==1):
-                    lex()
+            if (tempString in comments):  # // /*
+                tempCom = checkComments(tempString)
+                if (tempCom != EOFError):
+                    # lex()
+                    return token
+                elif (tempCom == '\n'):
+                    token = lex()
                 else:
                     print("Problem with comments!")
                     sys.exit()
@@ -129,7 +133,8 @@ def lex():
                 return tempString
         elif (tempString in groupingSymbols):  # Checks if it is a grouping symbol
             return tempString
-        elif (tempString.isalpha()):  # Checks if it is a reserved word or variable name(Starts with char and without number)
+        elif (
+        tempString.isalpha()):  # Checks if it is a reserved word or variable name(Starts with char and without number)
             while (True):
                 position += 1
                 fileReader.seek(position)
@@ -150,7 +155,7 @@ def lex():
                 else:
                     position -= 1
                     fileReader.seek(position)
-                    if(tempString=="inut"):
+                    if (tempString == "inut"):
                         return "input"
                     return tempString
         elif (tempString.isdigit()):  # Checks if it is a number
@@ -165,45 +170,54 @@ def lex():
                     if (number >= -32767 and number <= 32767):  # Checks if it belongs to the definition field
                         return number
                     else:
-                        print("Number is out of range! at line=",line)
+                        print("Number is out of range! at line=", line)
                         sys.exit()
                 else:
                     tempString += char
         elif (char == EOFError):  # Checks for the end of file
-            return EOFError
+            sys.exit()
+            # return EOFError
 
 
 # It checks for comments and ignores them
-def checkComments(varComment): #varComment==/* or varComment==//
+def checkComments(varComment):  # varComment==/* or varComment==//
     global token, position, line
-    tempComment=""
-    char=''
-    #print("We are here in checkComments, tempComment: ", tempComment)
+    tempComment = ""
+    char = ''
     if (varComment == "/*"):
         while (1):
             position += 1
             fileReader.seek(position)
             char = fileReader.read(1)
-            if(char=="*"):
+            if (char == "*"):
                 tempComment += char
-                position+=1
-                char=fileReader.read(1)
+                position += 1
+                char = fileReader.read(1)
                 tempComment += char
-
-                if (tempComment == EOFError or tempComment == "*/"):
-                    return 1;
+                if (tempComment == "*/"):
+                    token = lex()
+                    return token
                 elif (tempComment == "/*" or tempComment == "//"):
                     print("Error in comment at line=", line)
                     sys.exit()
+                elif (char == EOFError):
+                    print("comment never closed")
+                    sys.exit()
+                else:
+                    pass
     elif (varComment == "//"):
         while (1):
             position += 1
             fileReader.seek(position)
             char = fileReader.read(1)
-            tempComment=char
-            if (tempComment == EOFError or tempComment == '\n'):
-                line+=1
-                return 1
+            tempComment = char
+            if (tempComment == '\n'):
+                line += 1
+                if (char != EOFError):
+                    token = lex()
+                else:
+                    return EOFError
+                return token
             elif (tempComment == "//" or tempComment == "/*" or tempComment == "*/"):
                 print("Error in comment at line=", line)
                 sys.exit()
@@ -221,40 +235,33 @@ def syntax():
 
 def program():
     global mainID, token, internalFunction, nesting, afterScopeList, scopeCounter, scopeList
-    print("token at line 215 is", token)
-    token=lex()
-    print("token at line 217 is", token)
+    token = lex()
     if (token == "program"):
-        print("token at line 219 is", token)
         token = lex()
-        print("token at line 221 is", token)
         mainID = token
-        tempScope=Scope(nesting)
-        tempEntity=Entity("-main", "main", 8)
+        tempScope = Scope(nesting)
+        tempEntity = Entity("-main", "main", 8)
         tempScope.addEntity(tempEntity)
-        scopeList[scopeCounter]=tempScope
-        if (mainID not in reservedWords):
-            print("token at line 224 is", token)
-            token=lex()
-            print("token at line 226 is", token)
-            if(token=="{"):
-                print("token at line 228 is", token)
-                token=lex()
-                print("token at line 230 is", token)
+        scopeList[scopeCounter] = tempScope
+        if ((mainID not in reservedWords) and mainID.isalnum()):
+            token = lex()
+            if (token == "{"):
+                token = lex()
                 block(mainID)
             else:
-                print("'{' was expectes at line=",line)
+                print("I AM HERE")
+                print("'{' was expected at line=", line)
                 sys.exit()
             if (token == "}"):
-                if(internalFunction==False):
+                if (internalFunction == False):
                     genquad("halt", "_", "_", "_")
                     genquad("end_block", mainID, "_", "_")
                     afterScopeList.append(scopeList.pop(0))
                     return 1
                 else:
+                    genquad("end_block", functionIdList[-1], "_", "_")
                     return 0
             else:
-                print("PAPARIA", token)
                 print("'}' was expected at line=", line)
                 sys.exit()
         else:
@@ -271,143 +278,141 @@ def block(funcID):
         internalFunction = False
         genquad("begin_block", mainID, "_", "_")
     else:
-        genquad("begin_block", funcID, "_", "_")
-        tempScope=scopeList[0]
-        tempEntity_1=tempScope.getEntityList()
-        tempEntity=tempEntity_1[0]
+        tempScope = scopeList[0]
+        tempEntity_1 = tempScope.getEntityList()
+        tempEntity = tempEntity_1[0]
         tempEntity.setStartQuad(nextquad())
-        tempEntity_1=tempEntity
+        tempEntity_1[0] = tempEntity
         tempScope.setEntityList(tempEntity_1)
-    print("token at line 261 is", token)
-    print("token at line 252 is", token)
+        genquad("begin_block", funcID, "_", "_")
     declarations()
-    print("token at line 254 is", token)
-    subprograms() #token = function
+    token = lex()
+    subprograms()
     statements()
-    print("TOKEN TOKEN", token)
-    print("token at line 263 is", token)
-    
     return 1
 
 
 def declarations():
     global token
-    if(token=="declare"):
+    if (token == "declare"):
         varlist()
-        if(token==";"):
-            token=lex()
+        if (token == ";"):
             declarations()
         else:
-            print("';' was expected at line=", line) 
-            sys.exit()         
+            print("';' was expected at line=", line)
+            sys.exit()
+        #   else:
+    #       print("keyword 'declare' was expected at line=", line)
+    #       sys.exit()
     return 1
 
 
 def varlist():
-    global token, internalFunction, scopeList, scopeCounter
-    token=lex()
-    temp=Entity("","",0)
-    temp=scopeSearch(token)
-    if (token not in reservedWords and temp.name=="nothing"):
+    global token, internalFunction, scopeList, scopeCounter, declareVariablesList
+    token = lex()
+    temp = Entity("", "", 0)
+    temp = scopeSearch(token)
+    if ((token not in reservedWords) and token.isalnum() and temp.name == "nothing"):
         declareVariable = token
-        tempScope=scopeList[scopeCounter]
-        totalTempScope=tempScope.getTotalOffset()
-        tempEntity=Entity(token, "var", (totalTempScope+4))
+        tempScope = scopeList[scopeCounter]
+        totalTempScope = tempScope.getTotalOffset()
+        tempEntity = Entity(token, "var", (totalTempScope + 4))
         if (internalFunction == False):
             declareVariablesList.append([mainID, declareVariable])
         else:
             declareVariablesList.append([functionIdList[-1], declareVariable])
-        print("token at line 287 is", token)
         tempScope.addEntity(tempEntity)
-        scopeList[scopeCounter]=tempScope
-        token = lex()  
+        scopeList[scopeCounter] = tempScope
+        token = lex()
         if (token == ","):
-            print("token at line 291 is", token) 
             varlist()
         else:
             return 1
     else:
-        print("Incompatible varable name at line=", line)
+        print("Incompatible variable name at line=", line)
         sys.exit()
     return 1
 
 
 def subprograms():
     global token
-    print("token at line 311 is", token)
-    #token=lex()
-    while (token == "function" or token=="procedure"):
-        print("token at line 313 is", token)
+    while (token == "function" or token == "procedure"):
         subprogram()
-        print("token at line 315 is", token)    
     return 1
 
 
 def subprogram():
     global functionIdList, procedureIdList, token, nesting, scopeList, afterScopeList, scopeCounter
-    print("token at line 321 is", token)
     if (token == "function"):
         token = lex()
-        nesting+=1
-        print("token at line 324 is", token)   
+        nesting += 1
         functionID = token
-        token=lex()
-        print("token at line 327 is", token)
-        if (functionID in reservedWords):
+        #       token=lex()
+        tempTemp = Entity("", "", 0)
+        tempTemp = scopeSearch(functionID)
+        if (functionID in reservedWords or tempTemp.name == functionID):
             print("Incompatible function name at line=", line)
             sys.exit()
         if (functionID in functionIdList):
             print("Function with the same name already exists at line=", line)
             sys.exit()
-        tempScope=Scope(nesting)
-        tempEntity=Entity(functionID, "function", 8)
+        if (functionID in groupingSymbols):
+            print("Function id was expected at line=", line)
+            sys.exit()
+        tempScope = Scope(nesting)
+        tempEntity = Entity(functionID, "function", 8)
         tempScope.addEntity(tempEntity)
         scopeList.insert(0, tempScope)
-
-        functionIdList.append(functionID)
+        token = lex()
+        if (functionID.isalnum()):
+            functionIdList.append(functionID)
         funcbody(functionID)
         if (token == "}"):
-            afterScopeList=scopeList[scopeCounter+1]
-            tempScope=scopeList[scopeCounter]
-            temp=tempScope.getEntityList()
-            tempEntity=temp[0]
-            tempTemp[-1]
+            afterScopeList = scopeList[scopeCounter + 1]
+            tempScope = scopeList[scopeCounter]
+            temp = tempScope.getEntityList()
+            tempEntity = temp[0]
+            entityTemp = temp[-1]
             tempEntity.setOffset(afterScopeList.getTotalOffset())
-            tempEntity.setFrameLength(tempTemp.getOffset())
+            tempEntity.setFrameLength(entityTemp.getOffset())
             afterScopeList.addEntity(tempEntity)
             genquad("end_block", functionID, "_", "_")
-            nesting-=1
+            nesting -= 1
             afterScopeList.append(scopeList.pop(0))
     elif (token == "procedure"):
-        print("token at line 340 is", token)
         token = lex()
-        nesting+=1
-        print("token at line 342 is", token)
+        nesting += 1
         procedureID = token
+        tempTemp = Entity("", "", 0)
+        tempTemp = scopeSearch(procedureID)
         if (procedureID in reservedWords):
             print("Incompatible procedure name at line=", line)
             sys.exit()
         if (procedureID in procedureIdList):
-            print("Procedure with the ssame name already exist at line=", line)
+            print("Procedure with the same name already exist at line=", line)
             sys.exit()
-        tempScope=Scope(nesting)
-        tempEntity=Entity(procedureID, "procedure", 8)
+        if (procedureID in groupingSymbols):
+            print("Function id was expected at line=", line)
+            sys.exit()
+        tempScope = Scope(nesting)
+        tempEntity = Entity(procedureID, "procedure", 8)
         tempScope.addEntity(tempEntity)
         scopeList.insert(0, scope)
-
-        procedureIdList.append(procedureID)
+        token = lex()
+        if (procedureID.isalnum()):
+            procedureIdList.append(procedureID)
         funcbody(procedureID)
         if (token == "}"):
-            afterScopeList=scopeList[scopeCounter+1]
-            tempScope=scopeList[scopeCounter]
-            temp=tempScope.getEntityList()
-            tempEntity=temp[0]
-            tempTemp[-1]
+            afterScopeList = scopeList[scopeCounter + 1]
+            tempScope = scopeList[scopeCounter]
+            temp = tempScope.getEntityList()
+            tempEntity = temp[0]
+            entityTemp = temp[-1]
             tempEntity.setOffset(afterScopeList.getTotalOffset())
-            tempEntity.setFrameLength(tempTemp.getOffset())
+            tempEntity.setFrameLength(entityTemp.getOffset())
             afterScopeList.addEntity(tempEntity)
             genquad("end_block", procedureID, "_", "_")
-            nesting-=1
+            nesting -= 1
             afterScopeList.append(scopeList.pop(0))
     else:
         print("incorrect subprogram syntax at line=", line)
@@ -417,41 +422,32 @@ def subprogram():
 def funcbody(funcName):
     global token, internalFunction
     internalFunction = True
-    print("token at line 363 is", token)
     formalpars()
-    print("token at line 365 is", token)
-    #token=lex()
-    if(token=="{"):
-        token=lex()
+    if (token == "{"):
+        token = lex()
         block(funcName)
-        token=lex()
-        print("THEODOROU KOITA EDW TO", token)
-        if(token=="}"):
-            token=lex()
+        token = lex()
+        if (token == "}"):
+            genquad("end_block", funcName, "_", "_")
+            token = lex()
+            internalFunction = False
             return 1
         else:
-            print("PAPARIA, ", token)
             print("'}' was expected at line=", line)
             sys.exit()
     else:
         print("'{' was expected at line=", line)
         sys.exit()
-    print("token at line 367 is", token)
     return 1
 
 
 def formalpars():
     global token
-    print("token at line 373 is", token)
     if (token == "("):
-        token=lex()
-        print("token at line 376 is", token)
+        token = lex()
         formalparlist()
-        print("token at line 378 is", token)
         if (token == ")"):
-            print("token at line 380 is", token)
             token = lex()
-            print("token at line 382 is", token)
         else:
             print(" ')' expected after parameter list at line=", line)
             sys.exit()
@@ -462,24 +458,15 @@ def formalpars():
 
 def formalparlist():
     global token
-    print("token at line 393 is", token)
     if (token == ")"):
         return 1
     else:
         while (formalparitem()):
-            print("token at line 398 is", token)
             token = lex()
-            print("token at line 400 is", token)
-            #if (token == ")"):
-            #    return 1
-            #else:
-            #    return 0
             if (token == ','):
-                print("token at line 406 is", token)
                 token = lex()
                 formalparitem()
-                token=lex()
-                print("token at line 408 is", token)
+                token = lex()
                 continue
             else:
                 return 1
@@ -488,46 +475,43 @@ def formalparlist():
 
 def formalparitem():
     global token, variablesListOfFunction, functionIdList, variablesListOfProcedure, procedureIdList, scopeCounter, scopeList
-    print("token at line 418 is", token)
     if (token == "in"):
         token = lex()
-        tempScope=scopeList[scopeCounter]
-        print("token at line 421 is", token)
+        tempScope = scopeList[scopeCounter]
         if (token not in reservedWords):
             parInName = token
             variablesListOfFunction.append([functionIdList[-1], "in", parInName])
-            
-            tempEntity=Entity(parInName, "var", tempScope.getTotalOffset()+4)
+
+            tempEntity = Entity(parInName, "var", tempScope.getTotalOffset() + 4)
             tempEntity.setParMode("in")
             tempScope.addEntity(tempEntity)
-            tempArg=Argument("in", "int")
-            tempTemp=tempScope.getEntityList()
-            tempEntity=tempTemp[0]
+            tempArg = Argument("in", "int")
+            tempTemp = tempScope.getEntityList()
+            tempEntity = tempTemp[0]
             tempEntity.setArgument(tempArg)
-            tempTemp[0]=tempEntity
+            tempTemp[0] = tempEntity
             tempScope.setEntityList(tempTemp)
-            scopeList[scopeCounter]=tempScope
+            scopeList[scopeCounter] = tempScope
             return 1
         else:
-            print("Incompatible varable name at line=", line)
+            print("Incompatible variable name at line=", line)
             sys.exit()
     elif (token == "inout"):
-        print("token at line 430 is", token)
         token = lex()
         if (token not in reservedWords):
             parInOutName = token
             variablesListOfProcedure.append([functionIdList[-1], "inout", parInOutName])
-            
-            tempEntity=Entity(parInOutName, "var", tempScope.getTotalOffset()+4)
+
+            tempEntity = Entity(parInOutName, "var", tempScope.getTotalOffset() + 4)
             tempEntity.setParMode("inout")
             tempScope.addEntity(tempEntity)
-            tempArg=Argument("inout", "int")
-            tempTemp=tempScope.getEntityList()
-            tempEntity=tempTemp[0]
+            tempArg = Argument("inout", "int")
+            tempTemp = tempScope.getEntityList()
+            tempEntity = tempTemp[0]
             tempEntity.setArgument(tempArg)
-            tempTemp[0]=tempEntity
+            tempTemp[0] = tempEntity
             tempScope.setEntityList(tempTemp)
-            scopeList[scopeCounter]=tempScope
+            scopeList[scopeCounter] = tempScope
             return 1
         else:
             print("Incompatible varable name at line=", line)
@@ -539,186 +523,95 @@ def formalparitem():
 
 def statements():
     global token
-    print("token at line 446 is", token)
-    if (token != "{"):
-        #print("token at line 448 is", token)
+    if (token == "{"):
+        token = lex()
         statement()
-       #print("token at line 450 is", token)
-        return 1
-    elif(token == "{"):
-        #print("token at line 452 is", token)
-        #token = lex()
-        #print("token at line 454 is", token)
-        #while (statement()):
-        #    print("token at line 456 is", token)
-        #    token = lex()
-        #    print("token at line 458 is", token)
-        #    statement()
-        #    print("token at line 462 is, ", token)
-        #    if(token=="}"):
-        #        return 1
-        #    if (token != ";"):
-        #        return 1
-        #    if (token == ';'):
-        #        print("token at line 465 is", token)
-        #        token = lex()
-        #        print("token at line 467 is", token)
-        #        continue
-        #    else:
-        #        print(" ';' was expected at line=", line)
-        #        sys.exit()        
-    #else:
-    #    print(" '{' was expected at line=", line)
-    #    sys.exit()
-        token=lex()
-        statement()
-        #token=lex()
-        print("TOKEN BEFORE", token)
-        while(statement()):    
-            if(token==";"):
-                #token=lex()
-                print("TOKEN BEFORE", token)
-                statement()
-                print("TOKEN AFTER", token)
-                #token=lex()
-                if(token=="}"):
-                    return 1
-                elif(token==";"):
-                    #token=lex() #todo
-                    continue
-                else:
-                    print("TOKEN TOKEN TOKEN ", token)
-                    print("'}' was expected at line=", line)
-                    sys.exit()
-            elif(token=="}"):
-                return 1
-            else:
-                #print("';' was expected at line=", line)
-                #sys.exit()
-                print("im here", token)
-                return 1
-        token=lex()        
-    return 1
-                                        
+        #       token=lex()
+        while (token == ";"):
+            token = lex()
+            statement()
+        if (token == "}"):
+            return 1
+        else:
+            print("'}' was exprected at line=", line)
+            sys.exit()
+    else:
+        print("'{' was exprected at line=", line)
+        sys.exit()
+
+    # pdb.set_trace()
 
 
-
-
-#pdb.set_trace()
 def statement():
     global token
-    print("token at line 481 is", token)
     if ((token not in reservedWords) and (token not in delimeters)):
         assignmentStat()
-        print("token at line 484 is", token)   
     if (token == "if"):
         ifStat()
-        print("token at line 487 is", token)
     if (token == "while"):
         whileStat()
-        print("token at line 490 is", token)
     if (token == "doublewhile"):
         doublewhileStat()
-        print("token at line 493 is", token)
     if (token == "loop"):
         loopStat()
-        print("token at line 496 is", token)
     if (token == "exit"):
         exitStat()
-        print("token at line 499 is", token)
     if (token == "forcase"):
         forcaseStat()
-        print("token at line 502 is", token)
     if (token == "incase"):
         incaseStat()
-        print("token at line 505 is", token)
     if (token == "call"):
         callStat()
-        print("token at line 508 is", token)
     if (token == "return"):
         returnStat()
-        print("token at line 511 is", token)
     if (token == "input"):
         inputStat()
-        print("token at line 514 is", token)
     if (token == "print"):
         printStat()
-        print("token at line 517 is", token)
-    if(token in groupingSymbols):
-        token=lex()
-        return 1
-    #else:
-    #    print("Wrong Statement format at line=", line)
-    #    sys.exit()
     return 1
 
 
 def assignmentStat():
-    global token
-    print("token at line 525 is", token)
-    token=lex()
+    global token, declareVariablesList
     tempVarID = token
-    tempScope=scopeSearch(tempVarID)
-    if(tempScope=="nothing"):
+    tempScope = scopeSearch(tempVarID)
+    if (tempScope.name == "nothing"):
         print("Variable:", tempVarID, "not declared at line=", line)
         sys.exit()
-    if (tempVarID not in reservedWords):
-        #token = lex()
-        print("token at line 529 is", token)
+    if ((tempVarID not in reservedWords) and tempVarID.isalnum()):
+        declareVariablesList.append([functionIdList[-1], tempVarID])
+        token = lex()
         if (token == ":="):
             token = lex()
-            print("token at line 532 is", token)
-            reTemp = expression() # enan arithmo
-            print("token at line 534 is", token)
+            reTemp = expression()
             if (reTemp not in reservedWords):
                 genquad(":=", reTemp, "_", tempVarID)
-                token=lex()
-                return 1           
+                return 1
         else:
             print(" ':=' was expected at line=", line)
             sys.exit()
     else:
         print("Incompatible varable name at line=", line)
         sys.exit()
-    #if(token==";"):
-    #    assignmentStat()
-    #else:
-    #    return 1    
-                    
+
 
 def ifStat():
     global token
-    print("token at line 548 is", token)
+
     token = lex()
-    print("token at line 550 is", token)
     if (token == "("):
         bTrue, bFalse = condition()
         if (token == ")"):
             token = lex()
-            print("token at line 555 is", token)
             if (token == "then"):
-                token = lex()
-                print("token at line 558 is", token)
                 backpatch(bTrue, nextquad())
-                print("token at line 560 is", token)
                 statements()
-                print("token at line 562 is", token)
                 token = lex()
-                print("token at line 564 is", token)
                 tempTemp = makelist(nextquad())
                 genquad("jump", "_", "_", "_")
                 backpatch(bFalse, nextquad())
-                print("token at line 568 is", token)
                 elsepart()
-                print("token at line 570 is", token)
                 backpatch(tempTemp, nextquad())
-                #if (token == "}"):
-                #    print("token at line 573 is", token)
-                #    token = lex()
-                #    print("token at line 575 is", token)
-                #else:
-                #    print("If statement never close at line=", line)
-                #    sys.exit()
         else:
             print(" ')' was expected at line=", line)
             sys.exit()
@@ -727,14 +620,11 @@ def ifStat():
         sys.exit()
     return 1
 
+
 def elsepart():
     global token
-    print("token at line 589 is", token)
     if (token == "else"):
-        token = lex()
-        print("token at line 592 is", token)
         statements()
-        print("token at line 594 is", token)
         return 1
     else:
         return 0
@@ -742,37 +632,22 @@ def elsepart():
 
 def whileStat():
     global token, line
-    print("token at line 602 is", token)
     token = lex()
-    print("token at line 604 is", token)
     if (token == "("):
         startWhile = nextquad()
-        #token=lex()
         bTrue, bFalse = condition()
-        #token=lex()
-        print("token at line 6666666666666666666666666 is", token)
         if (token == ")"):
-            print("token at line 609 is", token)
             token = lex()
-            print("token at line 111111111111111 is", token)
-            #if(token=="{"):
-            print("token at line 611 is", token)
             backpatch(bTrue, nextquad())
             statements()
-            print("token at line 614 is", token)
             genquad("jump", "_", "_", startWhile)
             backpatch(bFalse, nextquad())
             if (token == "}"):
-                print("token at line 618 is", token)
                 token = lex()
-                print("token at line 620 is", token)
                 return 1
             else:
                 print("While statement never stop at line=", line)
                 sys.exit()
-            #else:
-            #    print("'{' expected at line=",line)
-            #    sys.exit()
         else:
             print(" ')' was expected at line=", line)
             sys.exit()
@@ -783,23 +658,15 @@ def whileStat():
 
 """         
 def doublewhileStat():
-    print("token at line 634 is", token)
     if(token=='('):
         token=lex()
-        print("token at line 637 is", token)
         condition()
-        print("token at line 639 is", token)
         if(token==')'):
             token=lex()
-            print("token at line 642 is", token)
             statements()
-            print("token at line 644 is", token)
             if(token=="else"):
-                print("token at line 646 is", token)
                 token=lex()
-                print("token at line 648 is", token)
                 statements()
-                print("token at line 650 is", token)
                 return 1
             else:
                 print("the keyword 'else' was expected at line=",l)
@@ -812,47 +679,35 @@ def doublewhileStat():
         return 0
 
 def loopStat():
-    print("token at line 663 is", token)
     statements()
-    print("token at line 665 is", token)
     token=lex()
-    print("token at line 667 is", token)
     return 1
 
 def exitStat():
-    print("token at line 671 is", token)
     token=lex()
-    print("token at line 673 is", token) 
     return 1
 """
 
 
 def forcaseStat():
     global token
-    print("token at line 680 is", token)
-    token=lex()
+    token = lex()
     startForCase = nextquad()
     tempTrueList = []
     while (token == "when"):
-        print("token at line 684 is", token)
         token = lex()
-        print("token at line 686 is", token)
         if (token == "("):
             bTrue, bFalse = condition()
             if (token == ")"):
                 token = lex()
-                print("token at line 691 is", token)
                 if (token == ":"):
                     token = lex()
-                    print("token at line 694 is", token)
                     backpatch(bTrue, nextquad())
                     statements()
-                    print("token at line 697 is", token)
                     tempTrueList.append(nextquad())
                     genquad("jump", "_", "_", "_")
                     backpatch(bFalse, nextquad())
-                    token = lex() #CHECK
-                    print("token at line 702 is", token)
+                    token = lex()
                 else:
                     print(" ':' was expected at line=", line)
                     sys.exit()
@@ -864,22 +719,13 @@ def forcaseStat():
             sys.exit()
     if (token == "default"):
         token = lex()
-        print("token at line 714 is", token)
         if (token == ":"):
             token = lex()
-            print("token at line 717 is", token)
             backpatch(bFalse.nextquad())
-            print("token at line 719 is", token)
             statements()
-            print("token at line 721 is", token)
-            #if (token == "}"):
             genquad("jump", "_", "_", startForCase)
             backpatch(tempTrueList, nextquad())
             token = lex()
-            print("token at line 726 is", token)
-            #else:
-            #    print("For case never sto at line=", line)
-            #    sys.exit()
         else:
             print(" ':' was expected at line=", line)
             sys.exit()
@@ -891,27 +737,16 @@ def forcaseStat():
 
 """ 
 def incaseStat():
-    print("token at line 740 is", token)
     while(token=="when"):
-        print("token at line 742 is", token)
         token=lex()
-        print("token at line 444 is", token)
         if(token=="("):
-            print("token at line 746 is", token)
             token=lex()
-            print("token at line 748 is", token)
             condition()
-            print("token at line 750 is", token)
             if(token==")"):
-                print("token at line 752 is", token)
                 token=lex()
-                print("token at line 754 is", token)
                 if(token==':'):
-                    print("token at line 756 is", token)
                     token=lex()
-                    print("token at line 758 is", token)
                     statements()
-                    print("token at line 760 is", token)
                 else:
                     print(" ':' was expected at line=",line)
                     sys.exit()
@@ -924,33 +759,34 @@ def incaseStat():
 
 
 def returnStat():
-    global token, internalFunction
-    print("token at line 774 is", token)
+    global token, internalFunction, declareVariablesList
     token = lex()
-    print("token at line 776 is", token)
     expressionTemp = expression()
-    genquad("retv", expressionTemp, "_", "_")
+    i = 0
+    for varList in declareVariablesList:
+        i += 1
+        if (expressionTemp == varList[1]):
+            genquad("retv", expressionTemp, "_", "_")
+            break
+        if (len(declareVariablesList) == i and expressionTemp != varList[1]):
+            print("return variable not declared at line=", line)
+            sys.exit()
     if (internalFunction == False):
         print("Return statement is out of function at line=", line)
         sys.exit()
+    token = lex()
     return 1
 
 
 """ 
 def callStat():
-    print("token at line 786 is", token)
     if(token==idtk):
         token=lex()
-        print("token at line 789 is", token)
         if(token=='('):
-            print("token at line 791 is", token)
             token=lex()
-            print("token at line 793 is", token)
             actualpars()
-            print("token at line 795 is", token)
             if(token==')'):
                 token=lex()
-                print("token at line 798 is", token)
                 return 1
             else:
                 print(" ')' was expected at line=",l)
@@ -967,13 +803,11 @@ def callStat():
 def printStat():
     global token
     token = lex()
-    print("token at line 816 is", token)  
-    if(token=="("):
-        token=lex()
+    if (token == "("):
+        token = lex()
         expressionTemp = expression()
-        token=lex()
-        if(token==")"):
-            token=lex()
+        if (token == ")"):
+            token = lex()
             genquad("out", expressionTemp, "_", "_")
             return 1
         else:
@@ -982,29 +816,24 @@ def printStat():
     else:
         print("'(' was expected at line=", line)
         sys.exit()
-    print("token at line 818 is", token) 
     return 1
 
 
 def inputStat():
     global token, line
-    print("token at line 825 is", token)
     token = lex()
-    print("token at line 827 is", token)
-    if(token=="("):
-        token=lex()
-        if (token not in reservedWords and token.isalnum()):
+    if (token == "("):
+        token = lex()
+        tempSer = scopeSearch(token)
+        if (token not in reservedWords and token.isalnum() and tempSer.name == token):
             genquad("inp", token, "_", "_")
-            print("token at line 830 is", token)
             token = lex()
-            print("token at line 832 is", token)
+            token = lex()
             return 1
         else:
-            print("TOKEN", token)
             print("Error with ID in input expression at line=", line)
             sys.exit()
-        if(token==")"):
-            #token=lex()
+        if (token == ")"):
             return 1
         else:
             print("')' was expected at line=", line)
@@ -1012,16 +841,23 @@ def inputStat():
     else:
         print("'(' was expected at line=", line)
 
+
 def actualpars(callerID):
-    global token
-    print("token at line 840 is", token)
-    token=lex()
+    global token, scopeList
+    token = lex()
     if (token == "("):
         actualparlist(callerID)
-        print("token at line 843 is", token)
-        #token=lex()
         if (token == ")"):
             tempTemp = newtemp()
+            scopeTemp = tempScope[0]
+            tempSer = Entity("", "", 0)
+            tempSer = scopeSearch(tempTemp)
+            if (tempSer.name == "nothing"):
+                tempEntity = Entity(tempTemp, "var", scopeTemp.getTotalOffset() + 4)
+                scopeTemp.addEntity(tempEntity)
+                scopeList[0] = scopeTemp
+            else:
+                pass
             genquad("par", tempTemp, "RET", "_")
             genquad("call", callerID, "_", "_")
         else:
@@ -1034,38 +870,30 @@ def actualpars(callerID):
 
 
 def actualparlist(callerID):
-    global token
-    print("token at line 859 is", token)
+    global token, functionParList
+    tempFunctionPars = Entity(callerID, "checkFunctionPars", 0)
+    functionParList.insert(0, tempFunctionPars)
     actualparitem(callerID)
-    print("token at line 861 is", token)
     while (token == ","):
-        print("token at line 863 is", token)
         actualparitem(callerID)
-        print("token at line 865 is", token)
 
 
 def actualparitem(callerID):
-    global token
-    print("token at line 870 is", token)
+    global token, functionParList
     token = lex()
-    print("token at line 872 is", token)
+    tempFunctionPars = functionParList[0]
     if (token == "in"):
-        print("token at line 874 is", token)
         token = lex()
-        print("token at line 876 is", token)
-        tempArg=Argument("in", "int")
-
+        tempArg = Argument("in", "int")
+        tempFunctionPars.setArgument(tempArg)
         expressionTemp = expression()
-        print("token at line 878 is", token)
         genquad("par", expressionTemp, "CV", "_")
     elif (token == "inout"):
-        print("token at line 881 is", token)
         token = lex()
-        print("token at line 883 is", token)
+        tempArg = ("inout", "int")
+        tempFunctionPars.setArgument(tempArg)
         genquad("par", token, "REF", "_")
-        print("token at line 886 is", token)
-        token = lex()
-        print("token at line 888 is", token)
+        # token = lex()
     else:
         print("No valid expression at line=", line)
         sys.exit()
@@ -1073,48 +901,35 @@ def actualparitem(callerID):
 
 def condition():
     global token
-    print("token at line 899 is", token)
     bTrue, bFalse = q1True, q1False = boolterm()
     while (token == "or"):
         backpatch(bFalse, nextquad())
         q2True, q2False = boolterm()
         bTrue = merge(bTrue, q2True)
         bFalse = q2False
-    print("token at line 906 is", token)
     return bTrue, bFalse
 
 
 def boolterm():
     global token
-    print("token at line 912 is", token)
     qTrue, qFalse = r1True, r1False = boolfactor()
     while (token == "and"):
         backpatch(qTrue, nextquad())
         r2True, r2False = boolfactor()
         qFalse = merge(qFalse, r2False)
         qTrue = r2True
-    print("token at line 919 is", token)
     return qTrue, qFalse
 
 
 def boolfactor():
     global token
-    print("token at line 925 is", token)
     token = lex()
-    print("token at line 927 is", token)
     if (token == "not"):
-        print("token at line 929 is", token)
         token = lex()
-        print("token at line 931 is", token)
         if (token == "["):
-            # token=lex()
-            print("token at line 934 is", token)
             bFalse, bTrue = condition()
-            print("token at line 936 is", token)
             if (token == "]"):
-                print("token at line 938 is", token)
                 token = lex()
-                print("token at line 940 is", token)
             else:
                 print(" ']' was expected at line=", line)
                 sys.exit()
@@ -1122,10 +937,7 @@ def boolfactor():
             print(" '[' was expected at line=", line)
             sys.exit()
     elif (token == "["):
-        print("token at line 948 is", token)
-        # token=lex()
         bTrue, bFalse = condition()
-        print("token at line 951 is", token)
         if (token == "]"):
             pass
         else:
@@ -1133,10 +945,8 @@ def boolfactor():
             sys.exit()
     else:
         expressionTemp = expression()
-        print("token at line 959 is", token)
         tempList = emptylist()
         relationaloper()
-        print("token at line 962 is", token)
         relopTemp = token
         token = lex()
         expressionTemp2 = expression()
@@ -1144,74 +954,106 @@ def boolfactor():
         genquad(relopTemp, expressionTemp, expressionTemp2, "_")
         bFalse = makelist(nextquad())
         genquad("jump", "_", "_", "+")
-    print("token at line 970 is", token)
     return bTrue, bFalse
 
 
 def expression():
-    global token # tok==(
-    print("token at line 976 is", token)
+    global token, scopeList
     optionalsignTemp = optionalsign()
-    print("token at line 978 is", token)
-    termTemp = term() #0
-    print("token at line 980 is", token)
+    termTemp = term()  # result
+    tempSer = scopeSearch(termTemp)
+    """if(tempSer.name != termTemp):
+        print("Variable: ", termTemp, "Not declared at line=", line)
+        sys.exit()"""
+    tempScope = scopeList[scopeCounter]
     while (token == "+" or token == "-"):
-        print("token at line 982 is", token)
         optionalsignTemp = token
-        print("token at line 984 is", token)
-        token = lex()  # or addoper(), will see
-        print("token at line 986 is", token)
+        token = lex()
+        tempSer = Entity("", "", 0)
+        tempSer = scopeSearch(token)
+        """if(token != tempSer.name):
+            print("Variable: ", token, "not declared at line=", line)
+            sys.exit()
+        else:
+            pass"""
         termTemp2 = term()
-        print("token at line 988 is", token)
+        tempSer = scopeSearch(termTemp2)
+        """if(termTemp2 != tempSer):
+            print("Variable: ", termTemp2, "not declared at line=", line)
+            sys.exit()
+        else:
+            pass"""
         tempTemp = newtemp()
+        tempSer = scopeSearch(tempTemp)
+        """if(tempSer.name=="nothing"):
+            tempScope2=tempScope.getTotalOffset()
+            tempEntity=Entity(tempTemp,"var",tempScope2+4)
+            tempScope.addEntity(tempEntity)
+        else:
+            pass"""
         genquad(optionalsignTemp, termTemp, termTemp2, tempTemp)
         termTemp = tempTemp
+    scopeList[scopeCounter] = tempScope
+    tempSer = scopeSearch(termTemp)
+    """1if(termTemp != tempSer.name):
+        print("Variable: ", termTemp, "not declared at line= at 997", line)
+        sys.exit()
+    else:
+        pass"""
     return termTemp
 
 
 def term():
-#   pdb.set_trace()
-    global token #while
-    print("token at line 998 is", token)
-    factorTemp = factor() #0
-    print("token at line 1000 is", token)
-#   if (factorTemp not in functionIdList):
-#       print("Function: ", factorTemp, "not declared at line=", line)
-#       sys.exit()
+    global token, scopeList
+    factorTemp = factor()  # result
+    #   if (factorTemp not in functionIdList):
+    #       print("Function: ", factorTemp, "not declared at line=", line)
+    #       sys.exit()
+    tempScope = scopeList[scopeCounter]
     while (token == "*" or token == "/"):
-        tempToken = token
-        print("token at line 1006 is", token)
-        token = lex()
-        print("token at line 1008 is", token)
         muloper()
-        print("token at line 1010 is", token)
-        factorTemp2 = factor()
-        print("token at line 10012 is", token)
-        if (factorTemp2 not in functionIdList):
-            print("Function: ", factorTemp, "not declared at line=", line)
+        tempToken = token
+        token = lex()
+        tempSer = Entity("", "", 0)
+        tempSer = scopeSearch(token)
+        if (token != tempSer.name):
+            print("Variable: ", token, "not declared at line=", line)
             sys.exit()
+        else:
+            pass
+        factorTemp2 = factor()
+        tempSer = scopeSearch(factorTemp2)
+        if (factorTemp2 != tempSer.name):
+            print("Variable: ", factorTemp2, "not declared at line=", line)
+            sys.exit()
+        else:
+            pass
+        #       if (factorTemp2 not in functionIdList):
+        #           print("Variable: ", factorTemp, "not declared at line=", line)
+        #           sys.exit()
         temp = newtemp()
+        tempSer = scopeSearch(temp)
+        if (tempSer.name == "nothing"):
+            tempScope2 = tempScope.getTotalOffset()
+            tempEntity(temp, "var", tempScope2 + 4)
+            tempScope.addEntity(tempEntity)
+        else:
+            pass
         genquad(tempToken, factorTemp, factorTemp2, temp)
         factorTemp = temp
-    print("token at line 1019 is", token)
-    return factorTemp
+    scopeList[scopeCounter] = tempScope
+    return factorTemp  # result
 
 
 def factor():
     global token
-    print("token at line 1025 is", token)
     if (str(token).isdigit()):
         tempConstant = token
-        print("token at line 1028 is", token)
         token = lex()
-        print("token at line 1030 is", token) 
     elif (token == "("):
-        tempConstant = token
-        print("token at line 1033 is", token)
         token = lex()
-        print("token at line 1035 is", token)
+        tempConstant = token
         expression()
-        print("token at line 1037 is", token)
         if (token == ")"):
             pass
         else:
@@ -1219,11 +1061,8 @@ def factor():
             sys.exit()
     elif (token not in reservedWords and token.isalnum()):
         tempConstant = token
-        print("token at line 1045 is", token)
         token = lex()
-        print("token at line 1047 is", token)
-        tempConstant = idtail(tempConstant)# to tempConstant allazei epidi sthn periptosh call w = newTemp() par, w, RET, _ xriazomaste to w to opio einai temp kai epistrefei
-        print("token at line 1049 is", token)
+        tempConstant = idtail(tempConstant)
     else:
         print("Problem with factor function at line=", line)
         sys.exit()
@@ -1232,17 +1071,14 @@ def factor():
 
 def idtail(callerID):
     global token
-    print("token at line 1058 is", token)
     name = callerID
     if (token == "("):
         name = actualpars(callerID)
-    print("token at line 1062 is", token)
     return name
 
 
 def relationaloper():
     global token
-    print("token at line 1068 is", token)
     if (token == '='):
         return 1
     elif (token == "<="):
@@ -1258,20 +1094,15 @@ def relationaloper():
     else:
         print("invalid relational operant at line=", line)
         sys.exit()
-    print("token at line 1084 is", token)
+
 
 def addoper():
     global token
-    print("token at line 1088 is", token)
     if (token == "+"):
-        print("token at line 1090 is", token)
         token = lex()
-        print("token at line 1092 is", token)
         return token
     elif (token == "-"):
-        print("token at line 1095 is", token)
         token = lex()
-        print("token at line 1097 is", token)
         return token
     else:
         print("invalid addoper at line=", line)
@@ -1280,12 +1111,9 @@ def addoper():
 
 def muloper():
     global token
-    print("token at line 1106 is", token)
     if (token == "*"):
-        print("token at line 1108 is", token)
         return token
     elif (token == '/'):
-        print("token at line 1111 is", token)
         return token
     else:
         print("invalid muloper at line=", line)
@@ -1294,11 +1122,8 @@ def muloper():
 
 def optionalsign():
     global token
-    print("token at line 1120 is", token)
     if (token == "+" or token == "-"):
-        print("token at line 1122 is", token)
         addoper()
-        print("token at line 1124 is", token)
     return token
 
 
@@ -1345,217 +1170,402 @@ def merge(list1, list2):
 def backpatch(par_list, z):
     global quadsList
     for i in quadsList:
-        if (i[3] == "_"):
-            i[3] = z
+        if (i[0] in par_list):
+            i[4] = z
 
 
 def minQuadToCquad(quad, iterator):
-    global currentFunctionVariablesPlace
+    global currentFunctionVariablesPlace, listOfVarTemps, variablesListOfFunction
     # insideFunction=False
-    cQuad=""
-    if (quad[0] == "jump"):
-        cQuad = "goto L_" + quad[3] + ";\n"
-    elif (quad[0] in mulOpers or quad[0] in addOpers):
-        cQuad = quad[3] + "=" + quad[1] + quad[0] + quad[2] + ";\n"
-    elif (quad[0] in relationalOpers):
-        if (quad[0] == "<>"):
+    cQuad = ""
+    if (quad[1] == "jump"):
+        cQuad = "goto L_" + str(quad[4]) + ";"
+    elif (quad[1] in mulOpers or quad[1] in addOpers):
+        cQuad = str(quad[4]) + "=" + str(quad[2]) + str(quad[1]) + str(quad[3]) + ";"
+    elif (quad[1] in relationalOpers):
+        if (quad[1] == "<>"):
             operation = "!="
-        elif (quad[0] == "="):
+        elif (quad[1] == "="):
             operation = "=="
         else:
-            operation = quad[0]
-        cQuad = "if(" + quad[1] + operation + quad[2] + ")" + " goto L_" + quad[3] + ";\n"
-    elif (quad[0] in assign):
+            operation = str(quad[1])
+        cQuad = "if(" + str(quad[2]) + operation + str(quad[3]) + ")" + " goto L_" + str(quad[4]) + ";"
+    elif (quad[1] in assign):
         operation = "="
-        cQuad = quad[3] + operation + quad[1] + ";\n"
-    elif (quad[0] == "halt"):
-        cQuad = "return 1;\n"
-    elif (quad[0] == "end_block"):
-        cQuad = "}"
-    elif (quad[0] == "inp"):
-        cQuad = "scanf(%d," + quad[1] + ");\n"
-    elif (quad[0] == "retv"):
-        cQuad = "return " + quad[1] + ";\n"
-    elif (quad[0] == "out"):
-        cQuad = "printf(%d" + quad[1] + ");\n"
-    elif (quad[0] == "begin_block"):
-        if (quad[1] == mainID):
+        cQuad = str(quad[4]) + str(operation) + str(quad[2]) + ";"
+    elif (quad[1] == "halt"):
+        cQuad = "return 1;"
+    elif (quad[1] == "end_block" and quad[2] == mainID):
+        cQuad = "\n}"
+    elif (quad[1] == "end_block" and (quad[2] in functionIdList or quad[2] in procedureIdList)):
+        cQuad = "goto L_" + str(iterator + 1) + ";"
+    elif (quad[1] == "inp"):
+        cQuad = "scanf(" + "'%d'," + quad[2] + ");"
+    elif (quad[1] == "retv"):
+        cQuad = "return " + str(quad[2]) + ";"
+    elif (quad[1] == "out"):
+        cQuad = "printf(" + "'%d'," + quad[2] + ");"
+    elif (quad[1] == "begin_block"):
+        if (quad[2] == mainID):
             cQuad = "int main()\n{\n   int "
-            for var in declareVariable:
-                if (var[0] == mainID):
+            for var in declareVariablesList:
+                if (var[0] == mainID):  # declared var
                     cQuad += var[1] + ","
+                else:
+                    cQuad += var[1] + ","
+            for i in listOfVarTemps:  # T_0, T_1 etc
+                cQuad += i + ","
+            for j in variablesListOfFunction:
+                cQuad += j[2] + ","  # in or inout variables
+            for k in variablesListOfProcedure:
+                cQuad += k[2] + ","
+
             cQuad = cQuad[:-1] + ";\n"
-            return cQuad
-        #else:
+
+        # else:
         #   insideFunction=True
         #   currentFunctionVariablesPlace+=1
         #   for var in variablesListOfFunction:
         #       if(var[0]==currentFunctionVariablesPlace):
         #           temp=var[1]+var[2]
         #       temp+=temp
-        #   cQuad="int"+quad[1]+"("+temp+")\n{" 
-    cQuad = "L_" + str(iterator) + ": " + cQuad
+        #   cQuad="int"+quad[1]+"("+temp+")\n{"
+    cQuad = "L_" + str(iterator) + ": " + cQuad + "\n"
     return cQuad
 
 
 def makeCfile():
     global quadsList
-    minToCquadsFile = open("minToCquads.c", "w+")
-    minToCquadsFile.write("#include <stdio.h>\n\nint main()\n{\n")
+    name = sys.argv[1].strip(".min") + "_quads.c"
+    minToCquadsFile = open(name, "w+")
+    minToCquadsFile.write("#include <stdio.h>\n\n")
     iterator = -1
     for quad in quadsList:
         iterator += 1
         minToCquadsFile.write(minQuadToCquad(quad, iterator))
+    #       print(quad[0], quad[1], quad[2], quad[3], quad[4])
+    return 1
+
 
 class Entity:
     def __init__(self, name, entityType, offset):
-        self.name=str(name)
-        self.entityType=str(entityType) #variable or function or constant or parameter or tempParameter
-        self.offset=int(offset)
-        self.startQuad=0
-        self.argumentList=[]
-        self.framelength=0
-        self.parMode=""
-        self.nextEntity=0
+        self.name = str(name)
+        self.entityType = str(entityType)  # variable or function or constant or parameter or tempParameter
+        self.offset = int(offset)
+        self.startQuad = 0
+        self.argumentList = []
+        self.framelength = 0
+        self.parMode = ""
+        self.nextEntity = 0
 
     def setArgument(self, x):
         self.argumentList.append(x)
+
     def setFrameLength(self, x):
-        self.framelength=x
+        self.framelength = x
+
     def setParMode(self, x):
-        self.parMode=x
+        self.parMode = x
+
     def setStartQuad(self, x):
-        self.startQuad=x
+        self.startQuad = x
+
     def setOffset(self, x):
-        self.offset=x
+        self.offset = x
+
     def getOffset(self):
         return self.offset
+
     def getArgumentList(self):
         return self.argumentList
+
     def show(self):
         print("name: ", self.name, "offset: ", self.offset, "entity type: ", self.entityType, "par", self.parMode)
-        if(self.entityType=="funtion" or self.entityType=="procedure"):
+        if (self.entityType == "funtion" or self.entityType == "procedure"):
             print("nextQuad: ", self.startQuad, "framelength: ", self.framelength)
+
 
 class Scope:
     def __init__(self, nestingLevel):
-        self.entityList=[]
-        self.nestingLevel=nestingLevel
-        self.enclosingScope=False
-    
+        self.entityList = []
+        self.nestingLevel = nestingLevel
+        self.enclosingScope = False
+
     def setEntityList(self, x):
-        self.entityList=x
+        self.entityList = x
+
     def getEntityList(self):
         return self.entityList
+
     def addEntity(self, x):
         self.entityList.append(x)
+
     def showScope(self):
         print(self.nestingLevel)
+
     def setClosedScope(self):
-        self.enclosingScope=True
+        self.enclosingScope = True
+
     def getTotalOffset(self):
-        if(len(self.entityList)==0):
+        if (len(self.entityList) == 0):
             return 0
         else:
             return (self.entityList[-1]).getOffset()
+
     def isLocalVar(self, x):
         for i in self.entityList:
-            if(i.name==x.name):
+            if (i.name == x.name):
                 return 1
             else:
                 return 0
+
+
 def scopeSearch(x):
     global scopeList
-    temp=Entity("nothing", "int", 0)
-    tempName=""
+    temp = Entity("nothing", "int", 0)
+    tempName = ''
     for i in scopeList:
-        tempList=i.getEntityList()
+        tempList = i.getEntityList()
         for j in tempList:
-            if(j.name==x):
-                temp.name=j.name
+            if (j.name == x):
+                temp = j
+                tempName = temp.name
+                tempName.strip()
+                temp.name = tempName
+            else:
+                # Check
+                pass
+    #           if(x.isdigit()):
+    #               temp.name=x
+    #           else:
+    #               pass
     return temp
+
 
 class Argument:
     def __init__(self, parMode, argType):
-        self.parMode=parMode
-        self.argType=argType
+        self.parMode = parMode
+        self.argType = argType
 
     def showArg(self):
         print(str(self.parMode))
 
+
 def gnvlcode(x):
+    global scopeList
     for i in scopeList:
-        tempEntityList=i.getEntityList()
+        tempEntityList = i.getEntityList()
         for j in tempEntityList:
-            if(j.name==x):
-                cord=i.nestingLevel
+            if (j.name == x):
+                cord = i.nestingLevel
                 break
-    temp="lw $t0,-4($sp)\n"
-    while(True):
-        temp=temp+"\t\tlw $t0,-4($s0)\n"
-        nesting+=1
-        if(nesting>cord):
+    temp = "lw $t0,-4($sp)\n"
+    while (True):
+        temp = temp + "\t\tlw $t0,-4($s0)\n"
+        nesting += 1
+        if (nesting > cord):
             break
-    temp=temp+"\t\taddi $t0,$t0,-"+str(x.offset)+"\n"
+    temp = temp + "\t\taddi $t0,$t0,-" + str(x.offset) + "\n"
     return temp
+
 
 def loadvr(v, r):
-    global nesting
-    counter=-1
+    global nesting, scopeList
+    counter = -1
     for i in scopeList:
-        tempEntityList=i.getEntityList()
+        tempEntityList = i.getEntityList()
         for j in tempEntityList:
-            if(j.name==v and counter==-1):
-                newV=j
-                cord=i.nestingLevel
+            if (j.name == v and counter == -1):
+                newV = j
+                cord = i.nestingLevel
                 break
-    if(v.isdigit()):
-        temp="li $t"+str(r)+","+str(v)+"\n"
-    elif(cord==1):
-        temp="lw $t"+str(r)+",-"+str(newV.offset)+"($s0)\n"
-    elif((newV.parMode=="" and nesting==cord) or (newV.parMode=="in" and nesting==cord) or (v[0:2] =="T_")):
-        temp="lw $t"+str(r)+",-"+str(newV.offset)+"($sp)\n"
-    elif(newV.parMode=="inout" and nesting==cord):
-        temp="lw $t0,-"+str(newV.offset)+"($sp)\n\t\t"+"lw $t"+str(r)+",($t0)\n"
-    elif((newV.parMode=="" and nesting==cord) or newV.parMode=="in" or cord<nesting):
-        temp=gnvlcode(newV.name)+"\t\tlw $t"+str(r)+",($t0)\n"
-    elif(newV.parMode=="inout" or cord<nesting):
-        temp=gnvlcode(v)+"\t\tlw $t0,($t0)\n"+"\t\tlw $t"+str(r)+",($t0)\n"
+    if (str(v).isdigit()):
+        temp = "li $t" + str(r) + "," + str(v) + "\n"
+    elif (cord == 1):
+        temp = "lw $t" + str(r) + ",-" + str(newV.offset) + "($s0)\n"
+    elif ((newV.parMode == "" and nesting == cord) or (newV.parMode == "in" and nesting == cord) or (v[0:2] == "T_")):
+        temp = "lw $t" + str(r) + ",-" + str(newV.offset) + "($sp)\n"
+    elif (newV.parMode == "inout" and nesting == cord):
+        temp = "lw $t0,-" + str(newV.offset) + "($sp)\n\t\t" + "lw $t" + str(r) + ",($t0)\n"
+    elif ((newV.parMode == "" and nesting == cord) or newV.parMode == "in" or cord < nesting):
+        temp = gnvlcode(newV.name) + "\t\tlw $t" + str(r) + ",($t0)\n"
+    elif (newV.parMode == "inout" or cord < nesting):
+        temp = gnvlcode(v) + "\t\tlw $t0,($t0)\n" + "\t\tlw $t" + str(r) + ",($t0)\n"
     else:
-        temp="Error in loadvr at line="+str(line)
+        temp = "Error in loadvr at line=" + str(line)
     print(temp)
     return temp
 
+
 def storerv(r, v):
-    counter=-1
+    global scopeList
+    counter = -1
     for i in scopeList:
-        tempEntityList=i.getEntityList()
+        tempEntityList = i.getEntityList()
         for j in tempEntityList:
-            if(j.name==v and counter==-1):
-                counter=i.nestingLevel
-                v=j
+            if (j.name == v and counter == -1):
+                v = j
+                counter = i.nestingLevel
                 break
-    localVar=scopeList[0].isLocalVar(v.name)
-    if(counter==1):
-        temp="sw $t"+str(r)+",-"+str(v.offset)+"($s0)\n"
-    elif((localVar==1 or v.name[0:2]=="T_" or v.parMode=="in") and nesting==counter):
-        temp="sw $t"+str(r)+",-"+str(v.offset)+"($sp)\n"
-    elif(v.parMode=="inout" and nesting==counter):
-        temp="lw $t0,-"+str(v.offset)+"($sp)\n\t\t"+"sw $t"+str(r)+"($t0)\n"
-    elif(v.parMode=="" and localVar==1 or v.parMode=="in" or counter<nesting):
-        temp=gnvlcode(v.name)+"\t\tsw $t"+str(r)+"($t0)"
-    elif(v.parMode=="inout" and counter<nesting):
-        temp=gnvlcode(v.name)+"\t\tlw $t0,($t0)"+"\t\tsw $t"+str(r)+"($t0\n)"
+    i = scopeList[0]
+    localVar = scopeList[0].isLocalVar(v.name)
+    if (counter == 1):
+        temp = "sw $t" + str(r) + ",-" + str(v.offset) + "($s0)\n"
+    elif ((localVar == 1 or v.name[0:2] == "T_" or v.parMode == "in") and nesting == counter):
+        temp = "sw $t" + str(r) + ",-" + str(v.offset) + "($sp)\n"
+    elif (v.parMode == "inout" and nesting == counter):
+        temp = "lw $t0,-" + str(v.offset) + "($sp)\n\t\t" + "sw $t" + str(r) + "($t0)\n"
+    elif (v.parMode == "" and localVar == 1 or v.parMode == "in" or counter < nesting):
+        temp = gnvlcode(v.name) + "\t\tsw $t" + str(r) + "($t0)"
+    elif (v.parMode == "inout" and counter < nesting):
+        temp = gnvlcode(v.name) + "\t\tlw $t0,($t0)" + "\t\tsw $t" + str(r) + "($t0\n)"
     else:
-        temp="Error i storerv at line"+str(line)
+        temp = "Error i storerv at line" + str(line)
     print(temp)
     return temp
+
+
+def minToAsm(quad):
+    global scopeList, nesting, scopeCounter, mainID, quadCounter
+    sem = True
+    num3 = 3
+    asm = ""
+    temp = ""
+
+    if (quad[1] == "jump"):
+        asm = "\tj L_" + str(quad[4])
+    elif (quad[1] == ":="):
+        asm = loadvr(quad[2], 1) + storerv(1, quad[4])
+    elif (quad[1] == "="):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tbeq $t" + str(1) + ",$t" + str(2) + ",L_" + str(quad[4])
+    elif (quad[1] == "jump"):
+        asm = "\tj L_" + str(quad[4])
+    elif (quad[1] == "+"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tadd " + "$t" + str(3) + ",$t" + str(1) + ",$t" + str(
+            2) + "\n" + storerv(num3, quad[4])
+    elif (quad[1] == "-"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tsub " + "$t" + str(3) + ",$t" + str(1) + ",$t" + str(
+            2) + "\n" + storerv(num3, quad[4])
+    elif (quad[1] == "*"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tmul " + "$t" + str(3) + ",$t" + str(1) + ",$t" + str(
+            2) + "\n" + storerv(num3, quad[4])
+    elif (quad[1] == "/"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tdiv " + "$t" + str(3) + ",$t" + str(1) + ",$t" + str(
+            2) + "\n" + storerv(num3, quad[4])
+    elif (quad[1] == ">="):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tbge $t" + str(1) + ",$t" + str(2) + ",L_" + str(quad[4])
+    elif (quad[1] == "<="):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tble $t" + str(1) + ",$t" + str(2) + ",L_" + str(quad[4])
+    elif (quad[1] == "<>"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tbne $t" + str(1) + ",$t" + str(2) + ",L_" + str(quad[4])
+    elif (quad[1] == ">"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tbgt $t" + str(1) + ",$t" + str(2) + ",L_" + str(quad[4])
+    elif (quad[1] == "<"):
+        asm = loadvr(quad[2], 1) + loadvr(quad[3], 2) + "\tblt $t" + str(1) + ",$t" + str(2) + ",L_" + str(quad[4])
+    elif (quad[1] == "halt"):
+        asm = "\tli $v0,10\n\t" + "syscall"
+    elif (quad[1] == "inp"):
+        temp = scopeSearch(quad[2])
+        asm = "\tli $v0,5\n\t" + "syscall\n\t" + "\n\tmove $t0,$v0\n\t" + storerv(0, temp)
+    elif (quad[1] == "out"):
+        temp = scopeSearch(quad[2])
+        asm = "\tli $v0,1\n" + loadvr(temp.name, 0) + "\n\tmove $a0,$t0" + "\n\t" + "syscall"
+    elif (quad[1] == "retv"):
+        asm = loadvr(quad[2], 1) + "\tmove $v0,$t1\n\tlw $ra,($sp)" + "\n\tjr $ra"
+    elif (quad[1] == "begin_block"):
+        sem = False
+        if (quad[2] == mainID):
+            scopeCounter = -1
+            nesting = 1
+            for i in afterScopeList:
+                if (i.nestingLevel == 1):
+                    temp = i.getTotalOffset()
+            asm = asm + "\tLmain:\n" + "\tsw $ra,($sp)\n" + "\t" + "add $sp,$sp," + str(temp) + "\n\t" + "move $s0,$sp"
+        else:
+            scopeCounter = 0
+            for j in afterScopeList:
+                if (j.nestingLevel > 1):
+                    temp = j.getEntityList()
+                    tempEntity = temp[0]
+                    if (tempEntity.name == quad[2]):
+                        tempTemp = tempEntity.framelength
+                        nesting = j.nestingLevel
+            asm = asm + "\t" + quad[2] + ":" + "\n\t" + "sw $ra,($sp)"
+    elif (quad[1] == "end_block"):
+        sem = False
+        tempScope = scopeList(0)
+        tempScope = tempScope.getEntityList()
+        tempScope = tempScope[0]
+        asm = ""
+    elif (quad[1] == "par" and quad[3] == "REF"):
+        if (quad[0] == 0):
+            for q in quadsList:
+                if (q[0] == quad[0]):
+                    num3 = -1
+                elif (num3 == -1 and q[0] == "call"):
+                    num3 = scopeSearch(q[2])
+                    temp = num3.frameLength
+                    break
+            asm = "\tadd $fp,$sp," + str(temp) + "\n"
+        else:
+            asm = ""
+        temp = 12 + 4 * quadCounter
+        quadCounter += 1
+        tempScope = scopeSearch(quad[2].strip())
+        scopeTemp = scopeList[0]
+        tempVar = scopeTemp.isLocalVar(tempScope.name)
+        asm = "Error at asm"
+        for scope in scopeList:
+            if (scope.isLocalVar(tempScope.name) == 1):
+                variableNesting = scope.nestingLevel
+        if (nesting == variableNesting or tempScope.parMode == "" and localVar == 1):
+            asm = "\tadd $t0,$sp,-" + str(tempScope.offset) + "\n\tsw $t0,-" + str(temp) + "($fp)"
+        elif (nesting == variableNesting or tempScope.parMode == "inout"):
+            asm = "\tlw $t0,-" + str(tempScope.offset) + "($sp)" + "\n\tsw $t0,-" + str(temp) + "($fp)"
+        elif (nesting != variableNesting or localVar == 1 or tempScope.parMode == "in"):
+            asm = gnlvcode(tempScope.name) + "\tsw $t0,-" + str(temp) + "($fp)"
+        elif (nesting != variableNesting or tempScope.parMode == "inout"):
+            asm = gnlvcode(tempScope.name) + "\tlw $t0,($t0)" + "\n\tsw $t0,-" + str(temp) + "($fp)"
+    elif (quad[0] == "par" and quad[3] == "CV"):
+        if (quadCounter == 0):
+            for q in quadsList:
+                if (q[0] == quad[0]):
+                    num3 = -1
+                elif (num3 == -1 and q[0] == "call"):
+                    num3 = scopeSearch(q[2])
+                    temp = num3.framelength
+                    break
+            asm = "\ttadd $fp,$sp," + str(temp) + "\n"
+        else:
+            asm = ""
+        tempTemp = 12 + 4 * quadCounter
+        quadCounter += 1
+        asm = asm + loadvr(quad[2], 0) + "\t\tsw $t0, -" + str(temp) + "($fp)"
+    else:
+        asm = "#Error to assembly code!"
+    if (sem == True):
+        asm = "\tL_" + str(quad[0]) + ": \n" + asm
+    else:
+        pass
+    return asm
+
+
+def makeAsmFile():
+    global currentQuadPlace
+    asmFileName = fileName.strip(".min") + "_final.asm"
+    asmFile = open(asmFileName, "w+")
+    asmFile.write("\tj Lmain\n")
+    for quad in quadsList:
+        asmFile.write("\t#" + str(quad[0]) + "," + str(quad[1]) + "," + str(quad[2]) + "," + str(quad[3]) + "," + str(
+            quad[4]) + minToAsm(quad))
+    return 1
+
 
 # Call the syntax
 syntax()
 # Call the makeCfile
 makeCfile()
+# Call makeAsmFile
+makeAsmFile()
 
 fileReader.close()  # Closing the file
-
-
