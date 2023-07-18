@@ -238,6 +238,7 @@ def program():
     token = lex()
     if (token == "program"):
         token = lex()
+        print(token)
         mainID = token
         tempScope = Scope(nesting)
         tempEntity = Entity("-main", "main", 8)
@@ -245,11 +246,11 @@ def program():
         scopeList[scopeCounter] = tempScope
         if ((mainID not in reservedWords) and mainID.isalnum()):
             token = lex()
+            # print(token)
             if (token == "{"):
                 token = lex()
                 block(mainID)
             else:
-                print("I AM HERE")
                 print("'{' was expected at line=", line)
                 sys.exit()
             if (token == "}"):
@@ -1315,6 +1316,7 @@ class Scope:
     def isLocalVar(self, x):
         for i in self.entityList:
             if (i.name == x.name):
+            # if (i.name == x):
                 return 1
             else:
                 return 0
@@ -1408,7 +1410,7 @@ def storerv(r, v):
                 counter = i.nestingLevel
                 break
     i = scopeList[0]
-    localVar = scopeList[0].isLocalVar(v.name)
+    localVar = scopeList[0].isLocalVar(v)
     if (counter == 1):
         temp = "sw $t" + str(r) + ",-" + str(v.offset) + "($s0)\n"
     elif ((localVar == 1 or v.name[0:2] == "T_" or v.parMode == "in") and nesting == counter):

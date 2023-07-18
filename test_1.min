@@ -1,6 +1,6 @@
 /* test_1 */
 
-program  test_1
+program  test2
 {
 	declare a, c;
 	function one(in numbers)
