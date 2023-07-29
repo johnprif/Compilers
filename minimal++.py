@@ -66,7 +66,7 @@ def lex():
     char = ''
 
     # pdb.set_trace()
-
+    # print("Token = ", token)
     while (True):
         position += 1
         fileReader.seek(position)
@@ -116,8 +116,12 @@ def lex():
             char = fileReader.read(1)
             tempString += char
             if (tempString in comments):  # // /*
-                if (checkComments(tempString) == 1):
-                    token = lex()
+                tempCom = checkComments(tempString)
+                if (tempCom != EOFError):
+                    # token = lex()
+                    return token
+                elif(tempCom == '\n'):
+                    token=lex()
                 else:
                     print("Problem with comments!")
                     sys.exit()
@@ -190,12 +194,17 @@ def checkComments(varComment):  # varComment==/* or varComment==//
                 char = fileReader.read(1)
                 tempComment += char
 
-                if (tempComment == EOFError or tempComment == "*/"):
-                    return 1;
+                if (tempComment == "*/"):
+                    token = lex()
+                    return token
                 elif (tempComment == "/*" or tempComment == "//"):
                     print("Error in comment at line=", line)
                     sys.exit()
-            # token = lex()
+                elif (char == EOFError):
+                    print("comment never closed")
+                    sys.exit()
+                else:
+                    pass
     elif (varComment == "//"):
         while (1):
             position += 1
